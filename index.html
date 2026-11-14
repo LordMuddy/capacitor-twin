@@ -1,0 +1,1313 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="平行板电容器数字孪生平台：参数可调、三维交互、实时求解 C、Q、U、E、W。">
+<title>平行板电容器 · 数字孪生实验平台</title>
+<style>
+  :root{
+    --bg:#070b14;
+    --panel:rgba(19,28,47,.78);
+    --line:rgba(122,160,220,.17);
+    --txt:#e9eefc;
+    --muted:#8ea0bd;
+    --pos:#ffb020;
+    --neg:#4cc9f0;
+    --accent:#7c5cff;
+    --mint:#5eead4;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    min-height:100vh;
+    background:var(--bg);
+    color:var(--txt);
+    font-family:"PingFang SC","Microsoft YaHei",system-ui,-apple-system,"Segoe UI",sans-serif;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  .bg{position:fixed;inset:0;z-index:-1;
+    background:
+      radial-gradient(900px 620px at 10% -12%, rgba(76,201,240,.16), transparent 62%),
+      radial-gradient(820px 600px at 90% -4%, rgba(255,176,32,.11), transparent 60%),
+      radial-gradient(760px 720px at 50% 118%, rgba(124,92,255,.18), transparent 66%),
+      #070b14;
+  }
+  .bg:after{
+    content:"";position:absolute;inset:0;
+    background-image:
+      linear-gradient(rgba(255,255,255,.028) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.028) 1px, transparent 1px);
+    background-size:56px 56px;
+    -webkit-mask-image:radial-gradient(circle at 50% 28%, #000 0%, transparent 76%);
+    mask-image:radial-gradient(circle at 50% 28%, #000 0%, transparent 76%);
+  }
+
+  /* ---------- header ---------- */
+  .top{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:20px 24px 12px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:14px}
+  .logo{
+    width:46px;height:46px;border-radius:14px;display:grid;place-items:center;
+    font:italic 700 25px/1 Georgia,"Times New Roman",serif;color:#08101f;
+    background:linear-gradient(145deg,#8ef0ff,#7c5cff);
+    box-shadow:0 10px 26px rgba(124,92,255,.42);
+    flex:none;
+  }
+  .titles h1{margin:0;font-size:20px;font-weight:700;letter-spacing:.4px}
+  .titles h1 em{
+    font-style:normal;
+    background:linear-gradient(90deg,#8ef0ff,#c4b5fd 55%,#ffcf6b);
+    -webkit-background-clip:text;background-clip:text;
+    color:transparent;-webkit-text-fill-color:transparent;
+  }
+  .titles p{margin:5px 0 0;font-size:11px;letter-spacing:.9px;color:var(--muted);text-transform:uppercase}
+  .top-right{display:flex;gap:8px;flex-wrap:wrap}
+  .pill{
+    display:inline-flex;align-items:center;gap:7px;
+    font-size:11.5px;color:#bcd0ea;padding:7px 12px;border-radius:99px;
+    border:1px solid var(--line);background:rgba(255,255,255,.035);
+    letter-spacing:.4px;
+  }
+  .pill .dot{width:6px;height:6px;border-radius:50%;background:#4ade80;box-shadow:0 0 10px #4ade80;animation:pulse 2s infinite}
+  @keyframes pulse{50%{opacity:.35}}
+  .pill.ghost{color:#8798b4}
+
+  /* ---------- layout ---------- */
+  .layout{
+    display:grid;
+    grid-template-columns:296px minmax(0,1fr) 344px;
+    gap:14px;
+    padding:6px 24px 18px;
+    align-items:stretch;
+  }
+  .panel{
+    background:linear-gradient(180deg,rgba(21,31,52,.82),rgba(11,17,30,.82));
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:15px;
+    backdrop-filter:blur(14px);
+    -webkit-backdrop-filter:blur(14px);
+    box-shadow:0 18px 44px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.05);
+    min-width:0;
+  }
+  h2{
+    display:flex;align-items:baseline;justify-content:space-between;
+    margin:0 0 12px;font-size:13px;font-weight:600;letter-spacing:.6px;color:#dbe6f8;
+  }
+  h2 .en{font-size:9px;letter-spacing:1.4px;color:#6d80a0;font-weight:500}
+
+  /* ---------- stage ---------- */
+  .stage{
+    position:relative;min-height:600px;border-radius:18px;overflow:hidden;
+    border:1px solid var(--line);
+    background:
+      radial-gradient(120% 90% at 50% 8%, rgba(38,66,120,.42), rgba(8,12,22,.92) 62%),
+      #080c15;
+    box-shadow:0 24px 60px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.06);
+  }
+  .stage canvas{position:absolute;inset:0;display:block;cursor:grab;touch-action:none}
+  .stage-top,.stage-bottom{
+    position:absolute;left:0;right:0;display:flex;justify-content:space-between;align-items:center;
+    padding:14px 16px;pointer-events:none;font-size:11px;color:#8fa3c4;gap:10px;
+  }
+  .stage-top{top:0}
+  .stage-bottom{bottom:0}
+  .tag{
+    padding:4px 9px;border-radius:7px;font-size:10px;letter-spacing:1px;
+    background:rgba(124,92,255,.16);border:1px solid rgba(124,92,255,.32);color:#c3b5ff;
+  }
+  .mode-badge{
+    padding:4px 10px;border-radius:99px;font-size:10.5px;letter-spacing:.5px;
+    background:rgba(94,234,212,.10);border:1px solid rgba(94,234,212,.28);color:#8ef0df;
+  }
+
+  /* ---------- controls ---------- */
+  .seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:11px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.06)}
+  .seg button{
+    appearance:none;border:0;background:transparent;color:#93a6c4;font-size:11.5px;
+    padding:7px 6px;border-radius:8px;cursor:pointer;font-family:inherit;letter-spacing:.3px;
+    transition:.18s;
+  }
+  .seg button.active{background:linear-gradient(180deg,rgba(124,92,255,.85),rgba(96,68,220,.85));color:#fff;box-shadow:0 6px 16px rgba(124,92,255,.35)}
+  .seg-note{margin:9px 0 16px;font-size:10.5px;line-height:1.65;color:#7e91af}
+
+  .ctrl{margin-bottom:15px}
+  .ctrl.hidden{display:none}
+  .ctrl-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .ctrl-head label{font-size:12px;color:#c6d4ea}
+  .chip{
+    font-size:10.5px;color:#a9bcd8;padding:3px 8px;border-radius:7px;
+    background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.07);
+    font-variant-numeric:tabular-nums;
+  }
+  .chip b{color:#fff;font-weight:600;font-size:11.5px}
+
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:99px;
+    background:linear-gradient(90deg,#7c5cff var(--p,50%),rgba(255,255,255,.12) var(--p,50%));
+    outline:none;cursor:pointer;margin:0;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:15px;height:15px;border-radius:50%;
+    background:#fff;border:3px solid #7c5cff;
+    box-shadow:0 0 12px rgba(124,92,255,.75);
+    transition:transform .12s;
+  }
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.12)}
+  input[type=range]::-moz-range-thumb{
+    width:13px;height:13px;border-radius:50%;background:#fff;border:3px solid #7c5cff;
+    box-shadow:0 0 12px rgba(124,92,255,.75);
+  }
+  input[type=range]:disabled{opacity:.4;cursor:not-allowed}
+  .ctrl-foot{display:flex;justify-content:space-between;margin-top:6px;font-size:9.5px;color:#63748f}
+
+  .toggles{display:grid;grid-template-columns:1fr 1fr;gap:9px 6px;margin:4px 0 15px;padding-top:13px;border-top:1px dashed rgba(255,255,255,.09)}
+  .sw{display:flex;align-items:center;gap:7px;font-size:11px;color:#bccbe2;cursor:pointer;user-select:none}
+  .sw input{display:none}
+  .sw .track{width:27px;height:15px;border-radius:99px;background:rgba(255,255,255,.14);position:relative;transition:.2s;flex:none}
+  .sw .track:after{content:"";position:absolute;top:2px;left:2px;width:11px;height:11px;border-radius:50%;background:#93a6c4;transition:.2s}
+  .sw input:checked + .track{background:rgba(124,92,255,.6)}
+  .sw input:checked + .track:after{left:14px;background:#fff;box-shadow:0 0 9px rgba(180,160,255,.95)}
+
+  .preset-row{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+
+  .tips{margin-top:15px;padding-top:13px;border-top:1px dashed rgba(255,255,255,.09)}
+  .tips-title{font-size:10px;letter-spacing:1.2px;color:#63748f;margin-bottom:8px}
+  .tip-row{display:flex;gap:8px;align-items:flex-start;font-size:10.5px;line-height:1.6;color:#93a6c4;margin:6px 0}
+  .tip-row i{
+    flex:none;width:14px;height:14px;border-radius:4px;display:grid;place-items:center;
+    font-style:normal;font-size:9px;color:#c3b5ff;background:rgba(124,92,255,.16);
+    border:1px solid rgba(124,92,255,.26);margin-top:2px;
+  }
+  .btn{
+    appearance:none;font-family:inherit;font-size:11px;letter-spacing:.3px;cursor:pointer;
+    padding:8px 10px;border-radius:9px;border:1px solid rgba(255,255,255,.1);
+    background:rgba(255,255,255,.05);color:#cbd8ee;transition:.16s;white-space:nowrap;
+  }
+  .btn:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2);transform:translateY(-1px)}
+  .btn:active{transform:translateY(0)}
+  .btn.primary{
+    background:linear-gradient(180deg,rgba(124,92,255,.9),rgba(92,64,214,.9));
+    border-color:rgba(160,140,255,.55);color:#fff;box-shadow:0 8px 20px rgba(124,92,255,.32);
+  }
+  .btn.primary:hover{box-shadow:0 10px 26px rgba(124,92,255,.45)}
+
+  /* ---------- right ---------- */
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+  .stat{
+    border-radius:11px;padding:9px 10px;
+    background:rgba(255,255,255,.032);border:1px solid rgba(255,255,255,.06);
+    min-width:0;
+  }
+  .stat .k{font-size:10px;color:#8296b3;letter-spacing:.3px;white-space:nowrap}
+  .stat .v{display:flex;align-items:baseline;gap:4px;margin-top:3px}
+  .stat .v b{font-size:19px;font-weight:650;letter-spacing:-.4px;font-variant-numeric:tabular-nums;line-height:1.15}
+  .stat .v i{font-size:10px;color:#8ea0bd;font-style:normal;white-space:nowrap}
+  .stat.hl{
+    border-color:rgba(255,176,32,.32);
+    background:linear-gradient(180deg,rgba(255,176,32,.14),rgba(255,176,32,.035));
+  }
+  .stat.hl .v b{color:#ffd479}
+  .stat.hl .k{color:#c9a768}
+
+  .formula-strip{
+    display:flex;flex-wrap:wrap;gap:5px;margin:10px 0 14px;
+  }
+  .formula-strip span{
+    font-size:10px;color:#a9b6d8;padding:4px 7px;border-radius:6px;
+    background:rgba(124,92,255,.1);border:1px solid rgba(124,92,255,.18);
+    font-family:ui-monospace,Consolas,"Courier New",monospace;
+  }
+
+  .card-inner{
+    border-top:1px dashed rgba(255,255,255,.09);
+    padding-top:12px;margin-top:2px;
+  }
+  .card-inner + .card-inner{margin-top:13px}
+  .card-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px}
+  .card-head h3{margin:0;font-size:11.5px;font-weight:600;color:#cfdcf1;letter-spacing:.4px}
+  .card-head .mini{font-size:9.5px;color:#7186a6;font-family:ui-monospace,Consolas,monospace}
+
+  #chart{width:100%;display:block;border-radius:9px;background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.05)}
+  .chart-note{margin:7px 0 0;font-size:10px;line-height:1.6;color:#7b8dab}
+  .chart-note b{color:#c3b5ff;font-weight:600}
+
+  .table-wrap{max-height:132px;overflow:auto;border-radius:8px;border:1px solid rgba(255,255,255,.05)}
+  table{width:100%;border-collapse:collapse;font-size:10.5px;font-variant-numeric:tabular-nums}
+  thead th{
+    position:sticky;top:0;background:#111a2c;color:#7f93b1;font-weight:500;
+    padding:6px 5px;text-align:right;border-bottom:1px solid rgba(255,255,255,.08);font-size:9.5px;
+  }
+  tbody td{padding:5px;text-align:right;color:#c9d6ea;border-bottom:1px dashed rgba(255,255,255,.055);white-space:nowrap}
+  tbody tr:last-child td{border-bottom:0}
+  td.empty{text-align:center;color:#63748f;font-size:10px;padding:14px 6px}
+  .btn-row{display:grid;grid-template-columns:1.2fr .8fr .9fr;gap:6px;margin-top:8px}
+  .btn-row .btn{padding:7px 6px;font-size:10.5px}
+
+  /* ---------- answers ---------- */
+  .answers{display:grid;grid-template-columns:1fr 1.25fr 1fr;gap:14px;padding:0 24px 26px}
+  .card{
+    position:relative;border-radius:16px;padding:18px 18px 16px;
+    background:linear-gradient(180deg,rgba(21,31,52,.72),rgba(11,17,30,.72));
+    border:1px solid var(--line);backdrop-filter:blur(10px);
+    box-shadow:0 16px 40px rgba(0,0,0,.3);
+    font-size:12px;line-height:1.75;color:#c2d0e6;
+    min-width:0;
+  }
+  .card .num{
+    position:absolute;top:14px;right:16px;
+    font:italic 700 26px/1 Georgia,serif;color:rgba(124,92,255,.32);
+  }
+  .card h3{margin:0 0 10px;font-size:13.5px;color:#eaf1ff;letter-spacing:.4px;padding-right:40px}
+  .card h3 span{display:block;font-size:9px;letter-spacing:1.4px;color:#6d80a0;margin-top:3px;font-weight:400}
+  .card p{margin:8px 0}
+  .card ul{margin:8px 0 0;padding-left:16px}
+  .card li{margin:5px 0}
+  .card b{color:#fff;font-weight:600}
+  .hl-txt{color:#ffd479}
+  .url-row{display:flex;gap:6px}
+  .url-row input{
+    flex:1;min-width:0;font-family:ui-monospace,Consolas,monospace;font-size:11px;
+    padding:8px 10px;border-radius:9px;color:#9fe8ff;
+    background:rgba(76,201,240,.06);border:1px solid rgba(76,201,240,.22);
+    outline:none;
+  }
+  .url-row .btn{flex:none;padding:8px 12px;font-size:11px}
+  .tip{font-size:10.5px;color:#7e91af;line-height:1.7;margin:10px 0 0}
+  .tip code{
+    font-family:ui-monospace,Consolas,monospace;font-size:10px;color:#c3b5ff;
+    background:rgba(124,92,255,.12);padding:1px 5px;border-radius:4px;
+  }
+  .steps{display:flex;flex-wrap:wrap;gap:5px;margin-top:11px}
+  .steps span{
+    font-size:10px;color:#a7b8d4;padding:4px 8px;border-radius:99px;
+    background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.07);
+  }
+  .eq-line{
+    font-family:ui-monospace,Consolas,monospace;font-size:13px;color:#c3b5ff;text-align:center;
+    padding:10px;margin:10px 0;border-radius:10px;
+    background:rgba(124,92,255,.1);border:1px solid rgba(124,92,255,.22);
+    letter-spacing:.4px;
+  }
+  .live{
+    margin:10px 0;padding:9px 11px;border-radius:9px;font-size:11px;line-height:1.7;
+    color:#bcd6ff;background:rgba(76,201,240,.07);border:1px solid rgba(76,201,240,.18);
+    font-variant-numeric:tabular-nums;
+  }
+  .live b{color:#fff}
+  .eq-block{display:flex;flex-direction:column;gap:7px;margin:4px 0 10px}
+  .eq-item{display:flex;align-items:center;gap:9px}
+  .eq-name{
+    flex:none;width:58px;font-size:10px;color:#7e91af;letter-spacing:.3px;
+  }
+  .eq-item code{
+    flex:1;min-width:0;font-family:ui-monospace,Consolas,monospace;font-size:11.5px;color:#d7e5ff;
+    background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);
+    padding:6px 9px;border-radius:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .tiny{font-size:10px;color:#7b8dab;line-height:1.7}
+
+  .foot{
+    padding:0 24px 28px;font-size:10px;color:#5d6e8a;text-align:center;letter-spacing:.4px;
+  }
+
+  .toast{
+    position:fixed;left:50%;bottom:32px;transform:translate(-50%,18px);
+    padding:9px 18px;border-radius:99px;font-size:12px;color:#fff;
+    background:rgba(30,41,66,.96);border:1px solid rgba(124,92,255,.45);
+    box-shadow:0 12px 34px rgba(0,0,0,.5);opacity:0;pointer-events:none;
+    transition:opacity .22s, transform .22s;z-index:50;
+  }
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+
+  @media (max-width:1240px){
+    .layout{grid-template-columns:1fr;gap:12px}
+    .stage{min-height:460px}
+    .answers{grid-template-columns:1fr}
+    .top{padding:16px 18px 8px}
+    .layout,.answers,.foot{padding-left:18px;padding-right:18px}
+    .stat-grid{grid-template-columns:repeat(3,1fr)}
+  }
+  @media (max-width:640px){
+    .stat-grid{grid-template-columns:1fr 1fr}
+    .titles h1{font-size:17px}
+    .top-right{display:none}
+  }
+  ::-webkit-scrollbar{width:8px;height:8px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14);border-radius:99px}
+  ::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.24)}
+</style>
+</head>
+<body>
+<div class="bg"></div>
+
+<header class="top">
+  <div class="brand">
+    <div class="logo">C</div>
+    <div class="titles">
+      <h1>平行板电容器 <em>数字孪生平台</em></h1>
+      <p>Parallel-Plate Capacitor · Digital Twin · 参数可调 / 实时求解 / 三维交互</p>
+    </div>
+  </div>
+  <div class="top-right">
+    <span class="pill"><i class="dot"></i>实时求解</span>
+    <span class="pill ghost">理想模型 · 忽略边缘效应</span>
+  </div>
+</header>
+
+<main class="layout">
+
+  <!-- ============ 左：参数 ============ -->
+  <aside class="panel">
+    <h2>参数调节 <span class="en">PARAMETERS</span></h2>
+
+    <div class="seg" id="modeSeg">
+      <button class="active" data-mode="U">恒压源 U</button>
+      <button data-mode="Q">孤立电荷 Q</button>
+    </div>
+    <p class="seg-note" id="modeNote">电压恒定（接通电源）：改变 d 时 U 不变，Q 随 C 变化。</p>
+
+    <div class="ctrl" id="ctrlS">
+      <div class="ctrl-head"><label for="rngS">极板面积 S</label><span class="chip"><b id="valS">100</b> cm²</span></div>
+      <input type="range" id="rngS" min="10" max="500" step="1" value="100">
+      <div class="ctrl-foot"><span>10 cm²</span><span>500 cm²</span></div>
+    </div>
+
+    <div class="ctrl" id="ctrlD">
+      <div class="ctrl-head"><label for="rngD">板间距 d</label><span class="chip"><b id="valD">2.00</b> mm</span></div>
+      <input type="range" id="rngD" min="0.2" max="10" step="0.05" value="2">
+      <div class="ctrl-foot"><span>0.2 mm</span><span>10 mm</span></div>
+    </div>
+
+    <div class="ctrl" id="ctrlEr">
+      <div class="ctrl-head"><label for="rngEr">相对介电常数 ε<sub>r</sub></label><span class="chip"><b id="valEr">1.00</b></span></div>
+      <input type="range" id="rngEr" min="1" max="8" step="0.1" value="1">
+      <div class="ctrl-foot"><span>空气 1.0</span><span>陶瓷 8.0</span></div>
+    </div>
+
+    <div class="ctrl" id="ctrlV">
+      <div class="ctrl-head"><label for="rngV">极板电压 U</label><span class="chip"><b id="valV">100</b> V</span></div>
+      <input type="range" id="rngV" min="1" max="1000" step="1" value="100">
+      <div class="ctrl-foot"><span>1 V</span><span>1000 V</span></div>
+    </div>
+
+    <div class="toggles">
+      <label class="sw"><input type="checkbox" id="chkField" checked><span class="track"></span>电场线</label>
+      <label class="sw"><input type="checkbox" id="chkCharge" checked><span class="track"></span>极板电荷</label>
+      <label class="sw"><input type="checkbox" id="chkDiel" checked><span class="track"></span>电介质</label>
+      <label class="sw"><input type="checkbox" id="chkSpin" checked><span class="track"></span>自动旋转</label>
+    </div>
+
+    <div class="preset-row">
+      <button class="btn ghost" data-preset="teach">课堂演示</button>
+      <button class="btn ghost" data-preset="big">大电容</button>
+      <button class="btn ghost" data-preset="strong">强电场</button>
+      <button class="btn ghost" id="btnReset">复位视角</button>
+    </div>
+
+    <div class="tips">
+      <div class="tips-title">交互提示</div>
+      <div class="tip-row"><i>1</i>拖动画面旋转视角，滚轮缩放，双击复位</div>
+      <div class="tip-row"><i>2</i>拖动 d 滑块，观察 C 与 C–d 曲线同步变化</div>
+      <div class="tip-row"><i>3</i>切到「孤立电荷 Q」对比 E 是否随 d 改变</div>
+      <div class="tip-row"><i>4</i>录屏时先「记录当前」，再连续改变 d 采样</div>
+    </div>
+
+    <p class="seg-note" style="margin:12px 0 0;color:#5f7291">ε₀ = 8.854×10⁻¹² F/m · 板间距显示为放大比例</p>
+  </aside>
+
+  <!-- ============ 中：三维视图 ============ -->
+  <section class="stage" id="stage">
+    <canvas id="scene"></canvas>
+    <div class="stage-top">
+      <span class="tag">3D 视图</span>
+      <span>拖动旋转 · 滚轮缩放 · 双击复位</span>
+    </div>
+    <div class="stage-bottom">
+      <span>为便于观察，板间距已放大显示</span>
+      <span class="mode-badge" id="modeBadge">恒压源模式</span>
+    </div>
+  </section>
+
+  <!-- ============ 右：读数 ============ -->
+  <aside class="panel">
+    <h2>实时读数 <span class="en">LIVE DATA</span></h2>
+
+    <div class="stat-grid">
+      <div class="stat hl"><div class="k">电容 C</div><div class="v"><b id="outC">—</b><i id="unitC">pF</i></div></div>
+      <div class="stat"><div class="k">极板电荷 Q</div><div class="v"><b id="outQ">—</b><i id="unitQ">nC</i></div></div>
+      <div class="stat"><div class="k">极板电压 U</div><div class="v"><b id="outU">—</b><i id="unitU">V</i></div></div>
+      <div class="stat"><div class="k">场强 E</div><div class="v"><b id="outE">—</b><i id="unitE">kV/m</i></div></div>
+      <div class="stat"><div class="k">储能 W</div><div class="v"><b id="outW">—</b><i id="unitW">nJ</i></div></div>
+      <div class="stat"><div class="k">能量密度 w</div><div class="v"><b id="outWd">—</b><i id="unitWd">mJ/m³</i></div></div>
+    </div>
+
+    <div class="formula-strip">
+      <span>C = ε₀ε<sub>r</sub>S / d</span>
+      <span>Q = CU</span>
+      <span>E = U / d</span>
+      <span>W = ½CU²</span>
+    </div>
+
+    <div class="card-inner">
+      <div class="card-head"><h3>C – d 关系曲线</h3><span class="mini">C ∝ 1/d</span></div>
+      <canvas id="chart"></canvas>
+      <p class="chart-note">曲线为 <b>双曲线</b>：d 增大，C 按反比减小。红点为当前工作点。</p>
+    </div>
+
+    <div class="card-inner">
+      <div class="card-head"><h3>实验数据</h3><span class="mini" id="recCount">0 组</span></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>d/mm</th><th>C</th><th>Q</th><th>E</th></tr></thead>
+          <tbody id="recBody"><tr><td colspan="4" class="empty">点击「记录当前」采样</td></tr></tbody>
+        </table>
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" id="btnRec">记录当前</button>
+        <button class="btn" id="btnClear">清空</button>
+        <button class="btn" id="btnCsv">复制 CSV</button>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<!-- ============ 作业答案 ============ -->
+<section class="answers">
+
+  <article class="card">
+    <div class="num">01</div>
+    <h3>数字孪生平台 · 网址<span>QUESTION 01</span></h3>
+    <div class="url-row">
+      <input id="urlBox" readonly value="https://" spellcheck="false">
+      <button class="btn primary" id="copyUrl">复制</button>
+    </div>
+    <p class="tip" id="urlNote">部署后此处会自动显示线上访问地址。</p>
+    <p class="tip">部署方式：把 <code>index.html</code> 上传到 GitHub Pages / Vercel / Netlify，或局域网用 <code>python -m http.server</code> 打开；单文件、无外部依赖，双击也能直接运行。</p>
+    <div class="steps"><span>① 拖动旋转视角</span><span>② 调 d 看 C 变化</span><span>③ 记录数据并录屏</span></div>
+  </article>
+
+  <article class="card">
+    <div class="num">02</div>
+    <h3>改变板间距 d，电容值如何变化？<span>QUESTION 02</span></h3>
+    <p><b>结论：</b>C 与 d 成 <b class="hl-txt">反比</b> —— d 增大，C 减小；d 减小，C 增大。</p>
+    <div class="eq-line">C = ε₀ε<sub>r</sub>S / d</div>
+    <p>固定 S 与 ε<sub>r</sub>、只拖动 d 时，右侧 C 的读数与 C–d 曲线上的红点同步移动，轨迹是一条双曲线。</p>
+    <div class="live" id="liveRow">—</div>
+    <ul>
+      <li>d 加倍 → C 减半；d 减半 → C 加倍（如 2 mm ↔ 4 mm）。</li>
+      <li>接通电源（<b>U 恒定</b>）：E = U/d 随 d 增大而减小，Q = CU 也减小。</li>
+      <li>断开电源（<b>Q 恒定</b>）：U = Q/C = Qd/(ε₀S) 随 d 线性增大，而 E = U/d = Q/(ε₀S) 与 d 无关。</li>
+      <li>理想模型中 d → 0 时 C → ∞；实际受介质击穿、板面不平与边缘效应限制。</li>
+    </ul>
+  </article>
+
+  <article class="card">
+    <div class="num">03</div>
+    <h3>代码中的核心物理公式<span>QUESTION 03</span></h3>
+    <div class="eq-block">
+      <div class="eq-item"><span class="eq-name">定义式</span><code>C = Q / U</code></div>
+      <div class="eq-item"><span class="eq-name">决定式</span><code>C = ε₀ε<sub>r</sub>S / d</code></div>
+      <div class="eq-item"><span class="eq-name">场强</span><code>E = U / d = σ / ε₀</code></div>
+      <div class="eq-item"><span class="eq-name">电荷能量</span><code>Q = CU，W = ½CU² = Q²/2C</code></div>
+      <div class="eq-item"><span class="eq-name">能量密度</span><code>w = ½ε₀ε<sub>r</sub>E²</code></div>
+    </div>
+    <p class="tiny">ε₀ = 8.854×10⁻¹² F/m；S 为极板正对面积（m²）；d 为板间距（m）；ε<sub>r</sub> 为相对介电常数（空气 ≈ 1）。平台按匀强场、忽略边缘效应计算。</p>
+  </article>
+</section>
+
+<footer class="foot">平行板电容器数字孪生 · 单文件网页 · Canvas 手写三维渲染 · 无外部依赖，可离线运行</footer>
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  var EPS0 = 8.8541878128e-12;
+
+  function $(id) { return document.getElementById(id); }
+  function clamp(v, a, b) { return Math.min(b, Math.max(a, v)); }
+
+  /* ================= 状态 ================= */
+  var state = {
+    S: 100, d: 2, er: 1, V: 100,
+    mode: 'U', Qfixed: null,
+    field: true, charge: true, diel: true, spin: true,
+    last: null
+  };
+
+  /* ================= 单位格式化 ================= */
+  var PFX = [
+    { e: 1e9, p: 'G' }, { e: 1e6, p: 'M' }, { e: 1e3, p: 'k' }, { e: 1, p: '' },
+    { e: 1e-3, p: 'm' }, { e: 1e-6, p: 'µ' }, { e: 1e-9, p: 'n' },
+    { e: 1e-12, p: 'p' }, { e: 1e-15, p: 'f' }
+  ];
+  function trimNum(v) {
+    var a = Math.abs(v);
+    var dec = a >= 100 ? 1 : (a >= 10 ? 2 : 3);
+    var s = v.toFixed(dec);
+    if (s.indexOf('.') >= 0) { s = s.replace(/0+$/, '').replace(/\.$/, ''); }
+    return s;
+  }
+  function si(v) {
+    if (!isFinite(v)) { return { n: '—', p: '' }; }
+    if (v === 0) { return { n: '0', p: '' }; }
+    var a = Math.abs(v);
+    for (var i = 0; i < PFX.length; i++) {
+      if (a >= PFX[i].e) { return { n: trimNum(v / PFX[i].e), p: PFX[i].p }; }
+    }
+    return { n: trimNum(v / 1e-15), p: 'f' };
+  }
+  function fmt(v, unit) { var s = si(v); return s.n + ' ' + s.p + unit; }
+
+  /* ================= 物理求解 ================= */
+  function compute() {
+    var S = state.S * 1e-4;
+    var d = state.d * 1e-3;
+    var C = EPS0 * state.er * S / d;
+    var U, Q;
+    if (state.mode === 'Q' && state.Qfixed !== null) {
+      Q = state.Qfixed;
+      U = Q / C;
+    } else {
+      U = state.V;
+      Q = C * U;
+    }
+    var E = U / d;
+    return {
+      S: S, d: d, C: C, Q: Q, U: U, E: E,
+      W: 0.5 * C * U * U,
+      sigma: Q / S,
+      u: 0.5 * EPS0 * state.er * E * E
+    };
+  }
+
+  /* ================= 读数同步 ================= */
+  var chartDirty = true;
+
+  function setOut(key, v, unit) {
+    var s = si(v);
+    $('out' + key).textContent = s.n;
+    $('unit' + key).textContent = s.p + unit;
+  }
+
+  function sync() {
+    var r = compute();
+    state.last = r;
+
+    $('valS').textContent = String(state.S);
+    $('valD').textContent = state.d.toFixed(2);
+    $('valEr').textContent = state.er.toFixed(1);
+    $('valV').textContent = state.V.toFixed(0);
+
+    setOut('C', r.C, 'F');
+    setOut('Q', r.Q, 'C');
+    setOut('U', r.U, 'V');
+    setOut('E', r.E, 'V/m');
+    setOut('W', r.W, 'J');
+    setOut('Wd', r.u, 'J/m³');
+
+    var d2 = Math.min(10, state.d * 2);
+    var c2 = EPS0 * state.er * r.S / (d2 * 1e-3);
+    $('liveRow').innerHTML =
+      '当前：d = <b>' + state.d.toFixed(2) + ' mm</b> → C = <b>' + fmt(r.C, 'F') + '</b>；<br>' +
+      '若 d → <b>' + d2.toFixed(2) + ' mm</b>，则 C = <b>' + fmt(c2, 'F') + '</b>' +
+      '（变化为原来的 ' + (r.C / c2).toFixed(2) + ' 倍）。';
+
+    chartDirty = true;
+  }
+
+  /* ================= 滑杆 ================= */
+  function paintRange(el) {
+    var min = parseFloat(el.min), max = parseFloat(el.max), v = parseFloat(el.value);
+    el.style.setProperty('--p', (((v - min) / (max - min)) * 100).toFixed(1) + '%');
+  }
+  function bindRange(id, key) {
+    var el = $(id);
+    el.addEventListener('input', function () {
+      state[key] = parseFloat(el.value);
+      paintRange(el);
+      sync();
+    });
+    paintRange(el);
+  }
+  bindRange('rngS', 'S');
+  bindRange('rngD', 'd');
+  bindRange('rngEr', 'er');
+  bindRange('rngV', 'V');
+
+  /* ================= 模式切换 ================= */
+  function setMode(m) {
+    if (m === state.mode) { return; }
+    if (m === 'Q') {
+      var r0 = compute();
+      state.Qfixed = r0.Q;
+      state.mode = 'Q';
+    } else {
+      state.mode = 'U';
+      state.Qfixed = null;
+    }
+    var btns = document.querySelectorAll('#modeSeg button');
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].classList.toggle('active', btns[i].getAttribute('data-mode') === state.mode);
+    }
+    $('ctrlV').classList.toggle('hidden', state.mode === 'Q');
+    $('modeNote').textContent = state.mode === 'Q'
+      ? '电荷恒定（断开电源）：改变 d 时 Q 不变，U = Q/C 随之变化。'
+      : '电压恒定（接通电源）：改变 d 时 U 不变，Q 随 C 变化。';
+    $('modeBadge').textContent = state.mode === 'Q' ? '孤立电荷模式' : '恒压源模式';
+    sync();
+  }
+  $('modeSeg').addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('button[data-mode]') : null;
+    if (b) { setMode(b.getAttribute('data-mode')); }
+  });
+
+  /* ================= 开关 ================= */
+  function bindSwitch(id, key) {
+    $(id).addEventListener('change', function (e) { state[key] = e.target.checked; });
+  }
+  bindSwitch('chkField', 'field');
+  bindSwitch('chkCharge', 'charge');
+  bindSwitch('chkDiel', 'diel');
+  bindSwitch('chkSpin', 'spin');
+
+  /* ================= 预设 ================= */
+  var PRESETS = {
+    teach:  { S: 100, d: 2, er: 1, V: 100 },
+    big:    { S: 400, d: 0.5, er: 4.5, V: 50 },
+    strong: { S: 200, d: 1, er: 1, V: 800 }
+  };
+  function applyPreset(p) {
+    if (state.mode === 'Q') { setMode('U'); }
+    state.S = p.S; state.d = p.d; state.er = p.er; state.V = p.V;
+    $('rngS').value = p.S; $('rngD').value = p.d; $('rngEr').value = p.er; $('rngV').value = p.V;
+    ['rngS', 'rngD', 'rngEr', 'rngV'].forEach(function (id) { paintRange($(id)); });
+    sync();
+  }
+  var pbtns = document.querySelectorAll('[data-preset]');
+  for (var pi = 0; pi < pbtns.length; pi++) {
+    (function (b) {
+      b.addEventListener('click', function () { applyPreset(PRESETS[b.getAttribute('data-preset')]); });
+    })(pbtns[pi]);
+  }
+  $('btnReset').addEventListener('click', function () {
+    cam.yaw = -0.62; cam.pitch = 0.34; cam.dist = 6.4;
+    toast('视角已复位');
+  });
+
+  /* ================= 画布尺寸 ================= */
+  var stage = $('stage');
+  var cv = $('scene');
+  var ctx = cv.getContext('2d');
+  var W = 0, H = 0, FOCAL = 1200;
+
+  function resizeScene() {
+    var rect = stage.getBoundingClientRect();
+    var w = Math.max(320, Math.round(rect.width));
+    var h = Math.max(320, Math.round(rect.height));
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    if (w === W && h === H && cv.width === Math.round(w * dpr)) { return; }
+    W = w; H = h;
+    cv.width = Math.round(w * dpr);
+    cv.height = Math.round(h * dpr);
+    cv.style.width = w + 'px';
+    cv.style.height = h + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    chartDirty = true;
+  }
+
+  /* ================= 相机与投影 ================= */
+  var cam = { yaw: -0.62, pitch: 0.34, dist: 6.4 };
+
+  function toCam(x, y, z) {
+    var cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw);
+    var x1 = x * cy + z * sy;
+    var z1 = -x * sy + z * cy;
+    var cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
+    var y2 = y * cp - z1 * sp;
+    var z2 = y * sp + z1 * cp;
+    return { x: x1, y: y2, z: z2 };
+  }
+  function projCam(p) {
+    var den = cam.dist - p.z;
+    var f = FOCAL / Math.max(0.6, den);
+    return { x: W / 2 + p.x * f, y: H * 0.52 - p.y * f, f: f, z: p.z };
+  }
+  function project(x, y, z) { return projCam(toCam(x, y, z)); }
+
+  /* ================= 盒子绘制 ================= */
+  function shade(hex, k, a) {
+    var n = parseInt(hex.slice(1), 16);
+    var r = Math.min(255, Math.round(((n >> 16) & 255) * k));
+    var g = Math.min(255, Math.round(((n >> 8) & 255) * k));
+    var b = Math.min(255, Math.round((n & 255) * k));
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + a + ')';
+  }
+
+  var FACES = [[0, 1, 2, 3], [4, 5, 6, 7], [0, 1, 5, 4], [3, 2, 6, 7], [0, 3, 7, 4], [1, 2, 6, 5]];
+
+  function drawBox(cx, cy, cz, sx, sy, sz, color, alpha, edge) {
+    var x0 = cx - sx / 2, x1 = cx + sx / 2;
+    var y0 = cy - sy / 2, y1 = cy + sy / 2;
+    var z0 = cz - sz / 2, z1 = cz + sz / 2;
+    var P = [
+      toCam(x0, y0, z0), toCam(x1, y0, z0), toCam(x1, y0, z1), toCam(x0, y0, z1),
+      toCam(x0, y1, z0), toCam(x1, y1, z0), toCam(x1, y1, z1), toCam(x0, y1, z1)
+    ];
+    var ctr = toCam(cx, cy, cz);
+    var faces = [];
+    for (var i = 0; i < FACES.length; i++) {
+      var idx = FACES[i];
+      var a = P[idx[0]], b = P[idx[1]], c = P[idx[2]], dd = P[idx[3]];
+      var ux = b.x - a.x, uy = b.y - a.y, uz = b.z - a.z;
+      var vx = c.x - a.x, vy = c.y - a.y, vz = c.z - a.z;
+      var nx = uy * vz - uz * vy;
+      var ny = uz * vx - ux * vz;
+      var nz = ux * vy - uy * vx;
+      var len = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1;
+      nx /= len; ny /= len; nz /= len;
+
+      var fx = (a.x + b.x + c.x + dd.x) / 4;
+      var fy = (a.y + b.y + c.y + dd.y) / 4;
+      var fz = (a.z + b.z + c.z + dd.z) / 4;
+      if ((fx - ctr.x) * nx + (fy - ctr.y) * ny + (fz - ctr.z) * nz < 0) {
+        nx = -nx; ny = -ny; nz = -nz;
+      }
+      if (nz <= 0.008) { continue; }
+
+      var diff = Math.max(0, nx * -0.34 + ny * 0.70 + nz * 0.63);
+      var sh = 0.36 + 0.74 * diff;
+
+      faces.push({
+        p: [projCam(a), projCam(b), projCam(c), projCam(dd)],
+        z: fz, sh: sh
+      });
+    }
+    faces.sort(function (m, n) { return m.z - n.z; });
+
+    for (var k = 0; k < faces.length; k++) {
+      var fp = faces[k].p;
+      ctx.beginPath();
+      ctx.moveTo(fp[0].x, fp[0].y);
+      for (var q = 1; q < 4; q++) { ctx.lineTo(fp[q].x, fp[q].y); }
+      ctx.closePath();
+      ctx.fillStyle = shade(color, faces[k].sh, alpha);
+      ctx.fill();
+      ctx.strokeStyle = edge || 'rgba(255,255,255,0.16)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+  }
+
+  /* ================= 电场线 ================= */
+  function drawArrow(A, B, at, size, color) {
+    var x = A.x + (B.x - A.x) * at;
+    var y = A.y + (B.y - A.y) * at;
+    var ang = Math.atan2(B.y - A.y, B.x - A.x);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x - size * Math.cos(ang - 0.48), y - size * Math.sin(ang - 0.48));
+    ctx.lineTo(x - size * Math.cos(ang + 0.48), y - size * Math.sin(ang + 0.48));
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+  }
+
+  function drawField(pw, pd, gap, t) {
+    var E = compute().E;
+    var k = clamp((Math.log10(Math.max(E, 1)) - 2) / 4.7, 0, 1);
+    var nx = 5, nz = 4;
+    var halfW = pw * 0.36, halfD = pd * 0.36;
+    var speed = 14 + 26 * k;
+
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.setLineDash([5, 9]);
+    ctx.lineDashOffset = -((t * 0.001 * speed) % 14);
+
+    for (var i = 0; i < nx; i++) {
+      for (var j = 0; j < nz; j++) {
+        var u = (i / (nx - 1) - 0.5) * 2 * halfW;
+        var v = (j / (nz - 1) - 0.5) * 2 * halfD;
+        var A = project(u, gap / 2 - 0.006, v);
+        var B = project(u, -gap / 2 + 0.006, v);
+
+        var grd = ctx.createLinearGradient(A.x, A.y, B.x, B.y);
+        grd.addColorStop(0, 'rgba(255,190,90,' + (0.18 + 0.32 * k) + ')');
+        grd.addColorStop(0.5, 'rgba(176,218,255,' + (0.26 + 0.38 * k) + ')');
+        grd.addColorStop(1, 'rgba(80,200,255,' + (0.20 + 0.34 * k) + ')');
+        ctx.strokeStyle = grd;
+        ctx.lineWidth = 0.9 + 0.9 * k;
+        ctx.beginPath();
+        ctx.moveTo(A.x, A.y);
+        ctx.lineTo(B.x, B.y);
+        ctx.stroke();
+
+        drawArrow(A, B, 0.5, 3.6 + 2 * k, 'rgba(196,228,255,' + (0.30 + 0.40 * k) + ')');
+      }
+    }
+    ctx.restore();
+  }
+
+  /* ================= 极板电荷 ================= */
+  function drawCharges(pw, pd, gap, th) {
+    var Q = compute().Q;
+    var qn = clamp((Math.log10(Math.max(Q, 1e-14)) + 12.5) / 8, 0.22, 1);
+    var cnx = 4, cnz = 3;
+
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    for (var i = 0; i < cnx; i++) {
+      for (var j = 0; j < cnz; j++) {
+        var u = (i / (cnx - 1) - 0.5) * pw * 0.70;
+        var v = (j / (cnz - 1) - 0.5) * pd * 0.70;
+
+        var pT = project(u, gap / 2 + th + 0.012, v);
+        var fT = clamp(0.1 * pT.f, 10, 21);
+        ctx.font = '700 ' + fT + 'px "PingFang SC",system-ui,sans-serif';
+        ctx.shadowColor = 'rgba(255,176,32,0.85)';
+        ctx.shadowBlur = 10;
+        ctx.fillStyle = 'rgba(255,216,138,' + (0.48 + 0.5 * qn) + ')';
+        ctx.fillText('+', pT.x, pT.y);
+
+        var pB = project(u, -gap / 2 - th - 0.012, v);
+        var fB = clamp(0.1 * pB.f, 10, 21);
+        ctx.font = '700 ' + fB + 'px "PingFang SC",system-ui,sans-serif';
+        ctx.shadowColor = 'rgba(76,201,240,0.85)';
+        ctx.shadowBlur = 10;
+        ctx.fillStyle = 'rgba(168,226,255,' + (0.48 + 0.5 * qn) + ')';
+        ctx.fillText('−', pB.x, pB.y);
+      }
+    }
+    ctx.restore();
+  }
+
+  /* ================= 标注 ================= */
+  function roundRect(g, x, y, w, h, r) {
+    g.beginPath();
+    g.moveTo(x + r, y);
+    g.lineTo(x + w - r, y);
+    g.quadraticCurveTo(x + w, y, x + w, y + r);
+    g.lineTo(x + w, y + h - r);
+    g.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    g.lineTo(x + r, y + h);
+    g.quadraticCurveTo(x, y + h, x, y + h - r);
+    g.lineTo(x, y + r);
+    g.quadraticCurveTo(x, y, x + r, y);
+    g.closePath();
+  }
+
+  function drawAnnotations(pw, pd, gap, th) {
+    var x = -pw / 2 - 0.18;
+    var A = project(x, gap / 2, 0);
+    var B = project(x, -gap / 2, 0);
+
+    ctx.save();
+    ctx.strokeStyle = 'rgba(160,190,230,0.55)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(A.x, A.y);
+    ctx.lineTo(B.x, B.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 端部横线
+    ctx.beginPath();
+    ctx.moveTo(A.x - 5, A.y); ctx.lineTo(A.x + 5, A.y);
+    ctx.moveTo(B.x - 5, B.y); ctx.lineTo(B.x + 5, B.y);
+    ctx.stroke();
+
+    var mx = (A.x + B.x) / 2, my = (A.y + B.y) / 2;
+    var label = 'd = ' + state.d.toFixed(2) + ' mm';
+    ctx.font = '600 11px "PingFang SC",system-ui,sans-serif';
+    var tw = ctx.measureText(label).width;
+    ctx.fillStyle = 'rgba(7,11,20,0.78)';
+    roundRect(ctx, mx - tw / 2 - 7, my - 10, tw + 14, 20, 10);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(160,190,230,0.30)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'rgba(210,228,255,0.95)';
+    ctx.fillText(label, mx, my);
+
+    // +Q / −Q
+    var pQ = project(pw / 2 + 0.10, gap / 2 + th + 0.05, 0);
+    ctx.textAlign = 'left';
+    ctx.font = '700 12px "PingFang SC",system-ui,sans-serif';
+    ctx.shadowColor = 'rgba(255,176,32,0.8)';
+    ctx.shadowBlur = 12;
+    ctx.fillStyle = '#ffd479';
+    ctx.fillText('+Q', pQ.x, pQ.y);
+
+    var pN = project(pw / 2 + 0.10, -gap / 2 - th - 0.05, 0);
+    ctx.shadowColor = 'rgba(76,201,240,0.8)';
+    ctx.fillStyle = '#8fe0ff';
+    ctx.fillText('−Q', pN.x, pN.y);
+    ctx.restore();
+  }
+
+  /* ================= 场景 ================= */
+  function drawScene(t) {
+    ctx.clearRect(0, 0, W, H);
+
+    var bg = ctx.createRadialGradient(W * 0.5, H * 0.46, 20, W * 0.5, H * 0.5, Math.max(W, H) * 0.72);
+    bg.addColorStop(0, 'rgba(58,98,175,0.22)');
+    bg.addColorStop(0.55, 'rgba(28,48,92,0.08)');
+    bg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+
+    var side = Math.sqrt(state.S * 1e-4);
+    var pw = 0.56 + side * 4.6;
+    var pd = pw * 0.76;
+    var gap = 0.16 + Math.pow(state.d / 10, 0.8) * 0.95;
+    var th = 0.05;
+
+    // 自适应取景：板面积越大板越大，间距越大自动拉远，保证整体不越界
+    var sW = 0.52 * W * Math.pow(1.02 / pw, 0.55);
+    var sH = 0.70 * H / (gap + 0.62);
+    FOCAL = Math.min(sW, sH) * 6.4;
+
+    var topY = gap / 2 + th / 2;
+    var botY = -gap / 2 - th / 2;
+
+    if (state.diel && state.er > 1.01) {
+      drawBox(0, 0, 0, pw * 0.92, gap * 0.96, pd * 0.92, '#4ee0c0', 0.10 + Math.min(0.16, (state.er - 1) * 0.028), 'rgba(94,234,212,0.42)');
+    }
+
+    if (state.field) { drawField(pw, pd, gap, t); }
+
+    var zTop = toCam(0, topY, 0).z;
+    var zBot = toCam(0, botY, 0).z;
+    if (zTop < zBot) {
+      drawBox(0, topY, 0, pw, th, pd, '#ffb020', 0.84, 'rgba(255,220,150,0.42)');
+      drawBox(0, botY, 0, pw, th, pd, '#37b6ff', 0.84, 'rgba(150,225,255,0.42)');
+    } else {
+      drawBox(0, botY, 0, pw, th, pd, '#37b6ff', 0.84, 'rgba(150,225,255,0.42)');
+      drawBox(0, topY, 0, pw, th, pd, '#ffb020', 0.84, 'rgba(255,220,150,0.42)');
+    }
+
+    if (state.charge) { drawCharges(pw, pd, gap, th); }
+    drawAnnotations(pw, pd, gap, th);
+  }
+
+  /* ================= 交互 ================= */
+  var dragging = false, px = 0, py = 0;
+
+  cv.addEventListener('pointerdown', function (e) {
+    dragging = true;
+    px = e.clientX; py = e.clientY;
+    cv.style.cursor = 'grabbing';
+    try { cv.setPointerCapture(e.pointerId); } catch (err) {}
+  });
+  cv.addEventListener('pointermove', function (e) {
+    if (!dragging) { return; }
+    var dx = e.clientX - px, dy = e.clientY - py;
+    px = e.clientX; py = e.clientY;
+    cam.yaw += dx * 0.0075;
+    cam.pitch = clamp(cam.pitch + dy * 0.006, -0.85, 1.15);
+  });
+  function endDrag(e) {
+    dragging = false;
+    cv.style.cursor = 'grab';
+    try { cv.releasePointerCapture(e.pointerId); } catch (err) {}
+  }
+  cv.addEventListener('pointerup', endDrag);
+  cv.addEventListener('pointercancel', endDrag);
+  cv.addEventListener('wheel', function (e) {
+    e.preventDefault();
+    cam.dist = clamp(cam.dist + e.deltaY * 0.0022, 4.5, 11);
+  }, { passive: false });
+  cv.addEventListener('dblclick', function () {
+    cam.yaw = -0.62; cam.pitch = 0.34; cam.dist = 6.4;
+  });
+
+  /* ================= 曲线图 ================= */
+  var ch = $('chart');
+  var chartCtx = null, chartW = 0, chartH = 150, lastChartW = -1;
+
+  function sizeChart() {
+    var w = ch.clientWidth || 280;
+    if (Math.abs(w - lastChartW) < 0.5 && chartCtx) { return; }
+    lastChartW = w;
+    chartW = w;
+    chartH = 150;
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    ch.width = Math.round(w * dpr);
+    ch.height = Math.round(chartH * dpr);
+    ch.style.height = chartH + 'px';
+    chartCtx = ch.getContext('2d');
+    chartCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    chartDirty = true;
+  }
+
+  function pF(v) {
+    var x = v * 1e12;
+    if (x >= 100) { return x.toFixed(0); }
+    if (x >= 10) { return x.toFixed(1); }
+    if (x >= 1) { return x.toFixed(2); }
+    return x.toFixed(3);
+  }
+
+  function drawChart() {
+    if (!chartCtx) { return; }
+    var g = chartCtx, w = chartW, h = chartH;
+    g.clearRect(0, 0, w, h);
+
+    var padL = 42, padR = 12, padT = 14, padB = 22;
+    var iw = w - padL - padR;
+    var ih = h - padT - padB;
+    if (iw < 40 || ih < 30) { return; }
+
+    var dmin = 0.2, dmax = 10;
+    var S = state.S * 1e-4;
+    var cmax = EPS0 * state.er * S / (dmin * 1e-3) * 1.05;
+    var r = compute();
+
+    function X(d) { return padL + (d - dmin) / (dmax - dmin) * iw; }
+    function Y(c) { return padT + ih - (c / cmax) * ih; }
+
+    // 网格
+    g.strokeStyle = 'rgba(255,255,255,0.07)';
+    g.lineWidth = 1;
+    g.font = '9px ui-monospace,Consolas,monospace';
+    g.fillStyle = 'rgba(142,160,189,0.8)';
+
+    var xs = [0.2, 2, 4, 6, 8, 10];
+    g.textAlign = 'center';
+    g.textBaseline = 'top';
+    for (var i = 0; i < xs.length; i++) {
+      var xx = X(xs[i]);
+      g.beginPath();
+      g.moveTo(xx, padT);
+      g.lineTo(xx, padT + ih);
+      g.stroke();
+      g.fillText(String(xs[i]), xx, padT + ih + 6);
+    }
+
+    g.textAlign = 'right';
+    g.textBaseline = 'middle';
+    for (var k = 0; k <= 2; k++) {
+      var val = cmax * k / 2;
+      var yy = Y(val);
+      g.beginPath();
+      g.moveTo(padL, yy);
+      g.lineTo(padL + iw, yy);
+      g.stroke();
+      g.fillText(pF(val), padL - 7, yy);
+    }
+
+    // 面积
+    var grad = g.createLinearGradient(0, padT, 0, padT + ih);
+    grad.addColorStop(0, 'rgba(124,92,255,0.30)');
+    grad.addColorStop(1, 'rgba(76,201,240,0.02)');
+
+    g.beginPath();
+    g.moveTo(X(dmin), padT + ih);
+    for (var n = 0; n <= 140; n++) {
+      var dv = dmin + (dmax - dmin) * n / 140;
+      var cvv = EPS0 * state.er * S / (dv * 1e-3);
+      g.lineTo(X(dv), Y(Math.min(cvv, cmax * 1.02)));
+    }
+    g.lineTo(X(dmax), padT + ih);
+    g.closePath();
+    g.fillStyle = grad;
+    g.fill();
+
+    // 曲线
+    g.beginPath();
+    for (var m = 0; m <= 160; m++) {
+      var d2 = dmin + (dmax - dmin) * m / 160;
+      var c2 = EPS0 * state.er * S / (d2 * 1e-3);
+      var px2 = X(d2), py2 = Y(Math.min(c2, cmax * 1.02));
+      if (m === 0) { g.moveTo(px2, py2); } else { g.lineTo(px2, py2); }
+    }
+    var lineGrad = g.createLinearGradient(padL, 0, padL + iw, 0);
+    lineGrad.addColorStop(0, '#8ef0ff');
+    lineGrad.addColorStop(1, '#8b79ff');
+    g.strokeStyle = lineGrad;
+    g.lineWidth = 2;
+    g.shadowColor = 'rgba(124,92,255,0.7)';
+    g.shadowBlur = 8;
+    g.stroke();
+    g.shadowBlur = 0;
+
+    // 当前工作点
+    var cx = X(clamp(state.d, dmin, dmax));
+    var cy = Y(Math.min(r.C, cmax * 1.02));
+
+    g.setLineDash([3, 3]);
+    g.strokeStyle = 'rgba(255,212,121,0.45)';
+    g.lineWidth = 1;
+    g.beginPath();
+    g.moveTo(cx, padT); g.lineTo(cx, padT + ih);
+    g.moveTo(padL, cy); g.lineTo(cx, cy);
+    g.stroke();
+    g.setLineDash([]);
+
+    g.beginPath();
+    g.arc(cx, cy, 7, 0, Math.PI * 2);
+    g.fillStyle = 'rgba(255,176,32,0.18)';
+    g.fill();
+    g.beginPath();
+    g.arc(cx, cy, 3.4, 0, Math.PI * 2);
+    g.fillStyle = '#ffd479';
+    g.shadowColor = 'rgba(255,176,32,0.95)';
+    g.shadowBlur = 10;
+    g.fill();
+    g.shadowBlur = 0;
+
+    // 轴标题
+    g.font = '9.5px ui-monospace,Consolas,monospace';
+    g.fillStyle = 'rgba(126,145,175,0.9)';
+    g.textAlign = 'left';
+    g.textBaseline = 'top';
+    g.fillText('C / pF', 3, 2);
+    g.textAlign = 'right';
+    g.fillText('d / mm', w - 6, h - 11);
+  }
+
+  /* ================= 数据表 ================= */
+  var records = [];
+
+  function fmtCell(v, unit) {
+    var s = si(v);
+    return s.n + ' ' + s.p + unit;
+  }
+
+  function renderRecords() {
+    var tb = $('recBody');
+    $('recCount').textContent = records.length + ' 组';
+    if (!records.length) {
+      tb.innerHTML = '<tr><td colspan="4" class="empty">点击「记录当前」采样</td></tr>';
+      return;
+    }
+    var html = '';
+    for (var i = 0; i < records.length; i++) {
+      var r = records[i];
+      html += '<tr><td>' + r.d.toFixed(2) + '</td>'
+        + '<td>' + fmtCell(r.C, 'F') + '</td>'
+        + '<td>' + fmtCell(r.Q, 'C') + '</td>'
+        + '<td>' + fmtCell(r.E, 'V/m') + '</td></tr>';
+    }
+    tb.innerHTML = html;
+    var wrap = tb.parentElement.parentElement;
+    wrap.scrollTop = wrap.scrollHeight;
+  }
+
+  $('btnRec').addEventListener('click', function () {
+    var r = compute();
+    records.push({ d: state.d, C: r.C, Q: r.Q, E: r.E, W: r.W });
+    if (records.length > 60) { records.shift(); }
+    renderRecords();
+    toast('已记录：d = ' + state.d.toFixed(2) + ' mm，C = ' + fmt(r.C, 'F'));
+  });
+  $('btnClear').addEventListener('click', function () {
+    records = [];
+    renderRecords();
+    toast('数据已清空');
+  });
+  $('btnCsv').addEventListener('click', function () {
+    if (!records.length) { toast('还没有数据'); return; }
+    var lines = ['d_mm,C_F,Q_C,E_V_per_m'];
+    for (var i = 0; i < records.length; i++) {
+      lines.push([records[i].d, records[i].C, records[i].Q, records[i].E].join(','));
+    }
+    copyText(lines.join('\n')).then(function () { toast('CSV 已复制到剪贴板'); });
+  });
+
+  /* ================= 复制 / 提示 ================= */
+  function copyText(t) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(t).catch(function () { return fallbackCopy(t); });
+    }
+    return fallbackCopy(t);
+  }
+  function fallbackCopy(t) {
+    return new Promise(function (resolve) {
+      var ta = document.createElement('textarea');
+      ta.value = t;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch (err) {}
+      document.body.removeChild(ta);
+      resolve();
+    });
+  }
+
+  var toastTimer = 0;
+  function toast(msg) {
+    var el = $('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.classList.remove('show'); }, 1800);
+  }
+
+  var urlBox = $('urlBox');
+  urlBox.value = location.href;
+  $('urlNote').textContent = location.protocol === 'file:'
+    ? '当前是本地文件路径；把网页部署到公网后，这里会自动变成线上网址（也可直接复制本地路径提交）。'
+    : '已自动填入当前访问地址，可直接复制提交。';
+  $('copyUrl').addEventListener('click', function () {
+    copyText(urlBox.value).then(function () { toast('网址已复制'); });
+  });
+
+  /* ================= 主循环 ================= */
+  function loop(t) {
+    if (state.spin && !dragging) { cam.yaw += 0.0026; }
+    drawScene(t);
+    if (chartDirty) { drawChart(); chartDirty = false; }
+    requestAnimationFrame(loop);
+  }
+
+  /* ================= 启动 ================= */
+  function boot() {
+    resizeScene();
+    sizeChart();
+    sync();
+    renderRecords();
+    requestAnimationFrame(loop);
+  }
+
+  window.addEventListener('resize', function () {
+    resizeScene();
+    sizeChart();
+  });
+
+  if (window.ResizeObserver) {
+    new ResizeObserver(function () { resizeScene(); }).observe(stage);
+    new ResizeObserver(function () { sizeChart(); }).observe(ch);
+  }
+
+  boot();
+
+  // 暴露少量接口，方便课堂/调试
+  window.CAP_TWIN = {
+    state: state,
+    compute: compute,
+    set: function (patch) {
+      for (var k in patch) {
+        if (Object.prototype.hasOwnProperty.call(patch, k)) { state[k] = patch[k]; }
+      }
+      $('rngS').value = state.S; $('rngD').value = state.d;
+      $('rngEr').value = state.er; $('rngV').value = state.V;
+      ['rngS', 'rngD', 'rngEr', 'rngV'].forEach(function (id) { paintRange($(id)); });
+      sync();
+    }
+  };
+})();
+</script>
+</body>
+</html>
